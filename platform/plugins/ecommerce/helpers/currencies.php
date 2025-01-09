@@ -1,12 +1,13 @@
 <?php
 
-use Botble\Ecommerce\Facades\CurrencyFacade;
-use Botble\Ecommerce\Models\Currency;
-use Botble\Ecommerce\Repositories\Interfaces\CurrencyInterface;
-use Botble\Ecommerce\Supports\CurrencySupport;
+use GuzzleHttp\Client;
 use Illuminate\Support\Collection;
+use Botble\Ecommerce\Models\Currency;
+use Botble\Ecommerce\Facades\CurrencyFacade;
+use Botble\Ecommerce\Supports\CurrencySupport;
+use Botble\Ecommerce\Repositories\Interfaces\CurrencyInterface;
 
-if (! function_exists('format_price')) {
+if (!function_exists('format_price')) {
     /**
      * @param float|int|null $price
      * @param Currency|null|string $currency
@@ -16,53 +17,68 @@ if (! function_exists('format_price')) {
      */
     function format_price($price, $currency = null, bool $withoutCurrency = false, bool $useSymbol = true): string
     {
-        if ($currency) {
-            if (! $currency instanceof Currency) {
-                $currency = app(CurrencyInterface::class)->getFirstBy(['id' => $currency]);
-            }
+        // Define API settings
+        $apiKey = '70b023dbad1be2854385410e';
+        $baseUrl = 'https://v6.exchangerate-api.com/v6/';
+        $defaultCurrency = cms_currency()->getDefaultCurrency()->title;
 
-            if (! $currency) {
-                return human_price_text($price, $currency);
-            }
+        // Get the currency for conversion
+        $currency = $currency ?? get_application_currency();
+        if (!$currency) {
+            return human_price_text($price, $currency);
+        }
+        $currencyTitle = $currency->title;
 
-            if ($currency->id != get_application_currency_id() && $currency->exchange_rate > 0) {
-                $currentCurrency = get_application_currency();
+        // Check if the currency is the default currency
+        if ($currencyTitle === $defaultCurrency) {
+            return $withoutCurrency ? human_price_text($price, $currency) : human_price_text($price, $currency) . ' ' . $currency->symbol;
+        }
 
-                if ($currentCurrency->is_default) {
-                    $price = $price / $currency->exchange_rate;
+        // Try to get the conversion rate from cache or API
+        $cacheKey = "exchange_rate_{$defaultCurrency}_{$currencyTitle}";
+        $conversionRate = Cache::get($cacheKey);
+
+        if (!$conversionRate) {
+            try {
+                $client = new Client();
+                $url = "{$baseUrl}{$apiKey}/latest/{$defaultCurrency}";
+                $response = $client->get($url);
+                $data = json_decode($response->getBody(), true);
+
+                if ($data['result'] === 'success') {
+                    if (isset($data['conversion_rates'][$currencyTitle])) {
+                        $conversionRate = ($data['conversion_rates'][$currencyTitle]);
+                        Cache::put($cacheKey, $conversionRate, 3600); // Cache for 1 hour
+                    } else {
+                        throw new Exception("Conversion rate for {$currencyTitle} not found.");
+                    }
                 } else {
-                    $price = $price / $currency->exchange_rate * $currentCurrency->exchange_rate;
+                    throw new Exception("Failed to retrieve exchange rates.");
                 }
-
-                $currency = $currentCurrency;
-            }
-        } else {
-            $currency = get_application_currency();
-
-            if (! $currency) {
+            } catch (Exception $e) {
+                Log::error('Currency conversion error: ' . $e->getMessage());
                 return human_price_text($price, $currency);
-            }
-
-            if (! $currency->is_default && $currency->exchange_rate > 0) {
-                $price = $price * $currency->exchange_rate;
             }
         }
 
+        // Perform the price conversion
+        $price = $price * ($conversionRate - 0.0005);
+
+        // Format the output
         if ($withoutCurrency) {
-            return $price;
+            return human_price_text($price, $currency);
         }
 
         if ($useSymbol && $currency->is_prefix_symbol) {
-            $space = get_ecommerce_setting('add_space_between_price_and_currency', 0) == 1 ? ' ' : null;
-
+            $space = get_ecommerce_setting('add_space_between_price_and_currency', 0) == 1 ? ' ' : '';
             return $currency->symbol . $space . human_price_text($price, $currency);
         }
 
-        return human_price_text($price, $currency, ($useSymbol ? $currency->symbol : $currency->title));
+        return human_price_text($price, $currency) . ' ' . $currency->symbol;
     }
 }
 
-if (! function_exists('format_price_cart')) {
+if (!function_exists('format_price_cart')) {
     /**
      * @param float|int|null $price
      * @param Currency|null|string $currency
@@ -72,60 +88,75 @@ if (! function_exists('format_price_cart')) {
      */
     function format_price_cart($price, $currency = null, bool $withoutCurrency = false, bool $useSymbol = true): string
     {
-        if ($currency) {
-            if (! $currency instanceof Currency) {
-                $currency = app(CurrencyInterface::class)->getFirstBy(['id' => $currency]);
-            }
+        // Define API settings
+        $apiKey = '70b023dbad1be2854385410e';
+        $baseUrl = 'https://v6.exchangerate-api.com/v6/';
+        $defaultCurrency = cms_currency()->getDefaultCurrency()->title;
 
-            if (! $currency) {
-                return human_price_text_cart($price, $currency);
-            }
+        // Get the currency for conversion
+        $currency = $currency ?? get_application_currency();
+        if (!$currency) {
+            return human_price_text($price, $currency);
+        }
+        $currencyTitle = $currency->title;
 
-            if ($currency->id != get_application_currency_id() && $currency->exchange_rate > 0) {
-                $currentCurrency = get_application_currency();
+        // Check if the currency is the default currency
+        if ($currencyTitle === $defaultCurrency) {
+            return $withoutCurrency ? human_price_text($price, $currency) : human_price_text($price, $currency) . ' ' . $currency->symbol;
+        }
 
-                if ($currentCurrency->is_default) {
-                    $price = $price / $currency->exchange_rate;
+        // Try to get the conversion rate from cache or API
+        $cacheKey = "exchange_rate_{$defaultCurrency}_{$currencyTitle}";
+        $conversionRate = Cache::get($cacheKey);
+
+        if (!$conversionRate) {
+            try {
+                $client = new Client();
+                $url = "{$baseUrl}{$apiKey}/latest/{$defaultCurrency}";
+                $response = $client->get($url);
+                $data = json_decode($response->getBody(), true);
+
+                if ($data['result'] === 'success') {
+                    if (isset($data['conversion_rates'][$currencyTitle])) {
+                        $conversionRate = ($data['conversion_rates'][$currencyTitle]);
+                        Cache::put($cacheKey, $conversionRate, 3600); // Cache for 1 hour
+                    } else {
+                        throw new Exception("Conversion rate for {$currencyTitle} not found.");
+                    }
                 } else {
-                    $price = $price / $currency->exchange_rate * $currentCurrency->exchange_rate;
+                    throw new Exception("Failed to retrieve exchange rates.");
                 }
-
-                $currency = $currentCurrency;
-            }
-        } else {
-            $currency = get_application_currency();
-
-            if (! $currency) {
-                return human_price_text_cart($price, $currency);
-            }
-
-            if (! $currency->is_default && $currency->exchange_rate > 0) {
-                $price = $price * $currency->exchange_rate;
+            } catch (Exception $e) {
+                Log::error('Currency conversion error: ' . $e->getMessage());
+                return human_price_text($price, $currency);
             }
         }
 
+        // Perform the price conversion
+        $price = $price * ($conversionRate - 0.0005);
+
+        // Format the output
         if ($withoutCurrency) {
-            return $price;
+            return human_price_text($price, $currency);
         }
 
         if ($useSymbol && $currency->is_prefix_symbol) {
-            $space = get_ecommerce_setting('add_space_between_price_and_currency', 0) == 1 ? ' ' : null;
-
+            $space = get_ecommerce_setting('add_space_between_price_and_currency', 0) == 1 ? ' ' : '';
             return $currency->symbol . $space . human_price_text($price, $currency);
         }
 
-        return human_price_text_cart($price, $currency, ($useSymbol ? $currency->symbol : $currency->title));
+        return human_price_text($price, $currency) . ' ' . $currency->symbol;
     }
 }
 
-if (! function_exists('human_price_text_cart')) {
+if (!function_exists('human_price_text_cart')) {
     /**
      * @param float|null|mixed $price
      * @param Currency|null|string $currency
      * @param string $priceUnit
      * @return string
      */
-    function human_price_text_cart($price, $currency=null, string $priceUnit = ''): string
+    function human_price_text_cart($price, $currency = null, string $priceUnit = ''): string
     {
         $numberAfterDot = ($currency instanceof Currency) ? $currency->decimals : 0;
 
@@ -168,7 +199,7 @@ if (! function_exists('human_price_text_cart')) {
     }
 }
 
-if (! function_exists('human_price_text')) {
+if (!function_exists('human_price_text')) {
     /**
      * @param float|null|mixed $price
      * @param Currency|null|string $currency
@@ -209,7 +240,7 @@ if (! function_exists('human_price_text')) {
 
         $price = number_format(
             $price,
-            (int)$numberAfterDot,
+            (int) $numberAfterDot,
             $decimalSeparator,
             $thousandSeparator
         );
@@ -220,19 +251,19 @@ if (! function_exists('human_price_text')) {
     }
 }
 
-if (! function_exists('get_current_exchange_rate')) {
+if (!function_exists('get_current_exchange_rate')) {
     /**
      * @param null $currency
      */
     function get_current_exchange_rate($currency = null)
     {
-        if (! $currency) {
+        if (!$currency) {
             $currency = get_application_currency();
-        } elseif (! $currency instanceof Currency) {
+        } elseif (!$currency instanceof Currency) {
             $currency = app(CurrencyInterface::class)->getFirstBy(['id' => $currency]);
         }
 
-        if (! $currency->is_default && $currency->exchange_rate > 0) {
+        if (!$currency->is_default && $currency->exchange_rate > 0) {
             return $currency->exchange_rate;
         }
 
@@ -240,7 +271,7 @@ if (! function_exists('get_current_exchange_rate')) {
     }
 }
 
-if (! function_exists('cms_currency')) {
+if (!function_exists('cms_currency')) {
     /**
      * @return CurrencySupport
      */
@@ -250,7 +281,7 @@ if (! function_exists('cms_currency')) {
     }
 }
 
-if (! function_exists('get_all_currencies')) {
+if (!function_exists('get_all_currencies')) {
     /**
      * @return Collection
      */
@@ -260,7 +291,7 @@ if (! function_exists('get_all_currencies')) {
     }
 }
 
-if (! function_exists('get_application_currency')) {
+if (!function_exists('get_application_currency')) {
     /**
      * @return Currency|null
      */
@@ -268,7 +299,7 @@ if (! function_exists('get_application_currency')) {
     {
         $currency = cms_currency()->getApplicationCurrency();
 
-        if (is_in_admin() || ! $currency) {
+        if (is_in_admin() || !$currency) {
             $currency = cms_currency()->getDefaultCurrency();
         }
 
@@ -276,7 +307,7 @@ if (! function_exists('get_application_currency')) {
     }
 }
 
-if (! function_exists('get_application_currency_id')) {
+if (!function_exists('get_application_currency_id')) {
     /**
      * @return int|null
      */

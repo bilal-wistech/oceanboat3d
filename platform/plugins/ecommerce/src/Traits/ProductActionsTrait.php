@@ -2,36 +2,37 @@
 
 namespace Botble\Ecommerce\Traits;
 
+use RvMedia;
+use Exception;
+use Throwable;
+use EcommerceHelper;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Botble\Ecommerce\Models\Product;
 use Botble\Base\Enums\BaseStatusEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Botble\Base\Events\CreatedContentEvent;
 use Botble\Base\Events\DeletedContentEvent;
 use Botble\Base\Events\UpdatedContentEvent;
 use Botble\Base\Http\Responses\BaseHttpResponse;
 use Botble\Ecommerce\Events\ProductQuantityUpdatedEvent;
-use Botble\Ecommerce\Http\Requests\CreateProductWhenCreatingOrderRequest;
-use Botble\Ecommerce\Http\Requests\ProductUpdateOrderByRequest;
 use Botble\Ecommerce\Http\Requests\ProductVersionRequest;
-use Botble\Ecommerce\Models\Product;
-use Botble\Ecommerce\Repositories\Interfaces\BrandInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeSetInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductCategoryInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductCollectionInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductVariationInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductVariationItemInterface;
-use Botble\Ecommerce\Services\Products\CreateProductVariationsService;
-use Botble\Ecommerce\Services\Products\StoreAttributesOfProductService;
 use Botble\Ecommerce\Services\Products\StoreProductService;
-use EcommerceHelper;
-use Exception;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
-use RvMedia;
-use Throwable;
+use Botble\Ecommerce\Repositories\Interfaces\BrandInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductInterface;
+use Botble\Ecommerce\Http\Requests\ProductUpdateOrderByRequest;
+use Botble\Ecommerce\Repositories\Interfaces\ProductCategoryInterface;
+use Botble\Ecommerce\Services\Products\CreateProductVariationsService;
+use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductVariationInterface;
+use Botble\Ecommerce\Services\Products\StoreAttributesOfProductService;
+use Botble\Ecommerce\Repositories\Interfaces\ProductCollectionInterface;
+use Botble\Ecommerce\Http\Requests\CreateProductWhenCreatingOrderRequest;
+use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeSetInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductVariationItemInterface;
+use NaeemAwan\PredefinedLists\Repositories\Interfaces\PredefinedListInterface;
 
 trait ProductActionsTrait
 {
@@ -44,19 +45,23 @@ trait ProductActionsTrait
     protected BrandInterface $brandRepository;
 
     protected ProductAttributeInterface $productAttributeRepository;
+    
+    protected PredefinedListInterface $predefinedListRepository;
 
     public function __construct(
         ProductInterface $productRepository,
         ProductCategoryInterface $productCategoryRepository,
         ProductCollectionInterface $productCollectionRepository,
         BrandInterface $brandRepository,
-        ProductAttributeInterface $productAttributeRepository
+        ProductAttributeInterface $productAttributeRepository,
+        PredefinedListInterface $predefinedListRepository
     ) {
         $this->productRepository = $productRepository;
         $this->productCategoryRepository = $productCategoryRepository;
         $this->productCollectionRepository = $productCollectionRepository;
         $this->brandRepository = $brandRepository;
         $this->productAttributeRepository = $productAttributeRepository;
+        $this->predefinedListRepository = $predefinedListRepository;
     }
 
     /**
@@ -79,20 +84,20 @@ trait ProductActionsTrait
         foreach ($versionInRequest as $variationId => $version) {
             $variation = $productVariation->findById($variationId);
 
-            if (! $variation) {
+            if (!$variation) {
                 continue;
             }
 
-            if (! $variation->product_id || $isUpdateProduct) {
+            if (!$variation->product_id || $isUpdateProduct) {
                 $isNew = false;
                 $productRelatedToVariation = $this->productRepository->findById($variation->product_id);
 
-                if (! $productRelatedToVariation) {
+                if (!$productRelatedToVariation) {
                     $productRelatedToVariation = $this->productRepository->getModel();
                     $isNew = true;
                 }
 
-                $version['images'] = array_values(array_filter((array)Arr::get($version, 'images', []) ?: []));
+                $version['images'] = array_values(array_filter((array) Arr::get($version, 'images', []) ?: []));
 
                 $productRelatedToVariation->fill($version);
 
@@ -102,7 +107,7 @@ trait ProductActionsTrait
                 $productRelatedToVariation->is_variation = 1;
 
                 $productRelatedToVariation->sku = Arr::get($version, 'sku');
-                if (! $productRelatedToVariation->sku && Arr::get($version, 'auto_generate_sku')) {
+                if (!$productRelatedToVariation->sku && Arr::get($version, 'auto_generate_sku')) {
                     $productRelatedToVariation->sku = $product->sku;
                     if (isset($version['attribute_sets']) && is_array($version['attribute_sets'])) {
                         foreach ($version['attribute_sets'] as $attributeId) {
@@ -122,7 +127,7 @@ trait ProductActionsTrait
                 $productRelatedToVariation->height = Arr::get($version, 'height', $product->height);
                 $productRelatedToVariation->weight = Arr::get($version, 'weight', $product->weight);
 
-                $productRelatedToVariation->sale_type = (int)Arr::get($version, 'sale_type', $product->sale_type);
+                $productRelatedToVariation->sale_type = (int) Arr::get($version, 'sale_type', $product->sale_type);
 
                 if ($productRelatedToVariation->sale_type == 0) {
                     $productRelatedToVariation->start_date = null;
@@ -149,7 +154,7 @@ trait ProductActionsTrait
                     }
                 }
 
-                if (! $productRelatedToVariation->is_variation) {
+                if (!$productRelatedToVariation->is_variation) {
                     if ($isNew) {
                         event(new CreatedContentEvent(PRODUCT_MODULE_SCREEN_NAME, request(), $productRelatedToVariation));
                     } else {
@@ -200,7 +205,7 @@ trait ProductActionsTrait
                 }
             }
 
-            if (! empty($addedAttributes)) {
+            if (!empty($addedAttributes)) {
                 $result = $variationRepository->getVariationByAttributesOrCreate($id, $addedAttributes);
 
                 $addedAttributeSets = $request->input('added_attribute_sets', []);
@@ -308,7 +313,7 @@ trait ProductActionsTrait
         ProductVariationItemInterface $productVariationItem,
         BaseHttpResponse $response
     ) {
-        $ids = (array)$request->input('ids');
+        $ids = (array) $request->input('ids');
 
         if (empty($ids)) {
             return $response
@@ -337,7 +342,7 @@ trait ProductActionsTrait
     ) {
         $variation = $productVariation->findById($variationId);
 
-        if (! $variation) {
+        if (!$variation) {
             return true;
         }
 
@@ -396,9 +401,9 @@ trait ProductActionsTrait
     ) {
         $addedAttributes = $request->input('attribute_sets', []);
 
-        if (! empty($addedAttributes) && is_array($addedAttributes)) {
+        if (!empty($addedAttributes) && is_array($addedAttributes)) {
             $result = $productVariation->getVariationByAttributesOrCreate($id, $addedAttributes);
-            if (! $result['created']) {
+            if (!$result['created']) {
                 return $response
                     ->setError()
                     ->setMessage(trans('plugins/ecommerce::products.form.variation_existed'));
@@ -464,7 +469,8 @@ trait ProductActionsTrait
                     'product',
                     'productVariationsInfo',
                     'originalProduct'
-                ))->render()
+                )
+                )->render()
             );
     }
 
@@ -486,13 +492,13 @@ trait ProductActionsTrait
 
         $addedAttributes = $request->input('attribute_sets', []);
 
-        if (! empty($addedAttributes) && is_array($addedAttributes)) {
+        if (!empty($addedAttributes) && is_array($addedAttributes)) {
             $result = $productVariation->getVariationByAttributesOrCreate(
                 $variation->configurable_product_id,
                 $addedAttributes
             );
 
-            if (! $result['created'] && $result['variation']->id !== $variation->id) {
+            if (!$result['created'] && $result['variation']->id !== $variation->id) {
                 return $response
                     ->setError()
                     ->setMessage(trans('plugins/ecommerce::products.form.variation_existed'));
@@ -545,7 +551,7 @@ trait ProductActionsTrait
              * @var Collection $variation
              */
             $data = $variation->toArray();
-            if ((int)$variation->is_default === 1) {
+            if ((int) $variation->is_default === 1) {
                 $data['variation_default_id'] = $variation->id;
             }
 
@@ -605,7 +611,7 @@ trait ProductActionsTrait
                 'paginate' => [
                     'per_page' => 5,
                     'type' => 'simplePaginate',
-                    'current_paged' => (int)$request->input('page', 1),
+                    'current_paged' => (int) $request->input('page', 1),
                 ],
             ]);
 
@@ -615,7 +621,8 @@ trait ProductActionsTrait
             view('plugins/ecommerce::products.partials.panel-search-data', compact(
                 'availableProducts',
                 'includeVariation'
-            ))->render()
+            )
+            )->render()
         );
     }
 
@@ -634,10 +641,11 @@ trait ProductActionsTrait
 
         $dataUrl = route('products.get-list-product-for-search', ['product_id' => $product ? $product->id : 0]);
 
-        return $response->setData(view(
-            'plugins/ecommerce::products.partials.extras',
-            compact('product', 'dataUrl')
-        )->render());
+        return $response->setData(
+            view(
+                'plugins/ecommerce::products.partials.extras',
+                compact('product', 'dataUrl')
+            )->render());
     }
 
     /**
@@ -787,5 +795,13 @@ trait ProductActionsTrait
         $this->productRepository->createOrUpdate($product);
 
         return $response->setMessage(trans('core/base::notices.update_success_message'));
+    }
+
+    public function getAllBoats(Request $request,BaseHttpResponse $response)
+    {   
+        $boats = $this->predefinedListRepository->getModel()
+        ->where('status', 1)
+        ->simplePaginate(5);
+        return $response->setData($boats);
     }
 }

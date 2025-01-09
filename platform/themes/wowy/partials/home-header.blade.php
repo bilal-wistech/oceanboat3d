@@ -65,22 +65,17 @@
  <!-- maryam -->
 @php
 $parallelslider = Botble\Theme\Models\ParallelSlider::where('status', 1)->first();
-$videoBackground = Botble\Theme\Models\VideoBackground::where('status', 1)->where('id', 2)->first();
-$videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('id', 1)->first();
+$videoBackground = Botble\Theme\Models\VideoBackground::where('status', 1)->first();
 @endphp
 
    
     @if ($videoBackground)
     <div class="video-banner" style="width: 100%; height:100vh; overflow:hidden">
             <div class="section hero">
-                <video class="bg-video desktop-video" autoplay muted loop>
+                <video class="bg-video" autoplay muted loop>
                     <source src="{{ RvMedia::getImageUrl($videoBackground->image) }}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
-                 <video class="bg-video mobile-video" autoplay muted loop>
-            <source src="{{ RvMedia::getImageUrl($videoMobile->image) }}" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
                 <div class="banner-text">
                     <h1 class="heading1">{{ $videoBackground->title }}</h1>
                     <p class="text1 d-none d-md-block mt-40">{{ $videoBackground->description }}</p>
@@ -104,7 +99,6 @@ $videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('i
 
 
 
-
  <header class="header-areac {{ $headerStyle }}">
         <div class="header-laptop">
         <div id="header-top1">
@@ -120,9 +114,9 @@ $videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('i
                         @if (theme_option('phone'))
                             <li><a href="">{{ theme_option('phone') }}</a></li>
                         @endif
-                        <!--@if (theme_option('contact_email'))-->
-                        <!--    <li><a href="">{{ theme_option('contact_email') }}</a></li>-->
-                        <!--@endif-->
+                        @if (theme_option('contact_email'))
+                            <li><a href="">{{ theme_option('contact_email') }}</a></li>
+                        @endif
                         <li><form id="standard-3" action="{{ route('public.products') }}" id="form2">
                         <input type="text" class="search-txt-input" name="q" maxlength="100" placeholder="Search...">
                         <button type="submit" form="form2"  class="search-button">
@@ -130,7 +124,26 @@ $videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('i
                        </form></li>
                     </ul>
                     <ul class="header-navbar-nav-right header-navbar-nav d-flex">
-                      
+                        @php
+                            $currencies = get_all_currencies() ?? [];
+                            $selectedCurrency = $currencies->firstWhere('id', get_application_currency_id())->title ?? 'Select Currency';
+                        @endphp
+                                <!-- Currency Dropdown -->
+                        <div class="dropdown my-dropdown currency">
+                            <button class="dropdown-toggle" type="button" id="currencyDropdown"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ $selectedCurrency }}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="currencyDropdown">
+                                @foreach ($currencies as $currency)
+                                    @if ($currency->id !== get_application_currency_id())
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('public.change-currency', $currency->title) }}">{{ $currency->title }}</a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
                         @foreach(json_decode(theme_option('social_links'), true) as $socialLink)
                             @if (count($socialLink) == 4)
                                 <li><a href="{{ $socialLink[2]['value'] }}" target="_blank"><i
@@ -186,9 +199,9 @@ $videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('i
                         @if (theme_option('phone'))
                             <li><a href="">{{ theme_option('phone') }}</a></li>
                         @endif
-                        <!--@if (theme_option('contact_email'))-->
-                        <!--    <li><a href="">{{ theme_option('contact_email') }}</a></li>-->
-                        <!--@endif-->
+                        @if (theme_option('contact_email'))
+                            <li><a href="">{{ theme_option('contact_email') }}</a></li>
+                        @endif
                     </ul>
                     <ul class="header-navbar-nav-right header-navbar-nav">
 
@@ -357,7 +370,24 @@ $videoMobile = Botble\Theme\Models\VideoBackground::where('status', 1)->where('i
                         </form>
                     </div>
                             </div>
-
+                            <div class="col-4">
+                                  <!-- Custom Currency Dropdown -->
+                                  <div class="dropdown my-dropdown currency">
+                                    <button class="dropdown-toggle" type="button" id="currencyDropdown"
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ $selectedCurrency }}
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="currencyDropdown">
+                                        @foreach ($currencies as $currency)
+                                            @if ($currency->id !== get_application_currency_id())
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ route('public.change-currency', $currency->title) }}">{{ $currency->title }}</a>
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
 

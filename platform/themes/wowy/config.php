@@ -57,7 +57,7 @@ return [
             $theme->asset()->usePath()->add('slick-css', 'css/plugins/slick.css');
 
             $theme->asset()->usePath()->add('style-css', 'css/style.css', [], [], $version);
-            $theme->asset()->usePath()->add('style2-css', 'css/style2.css', [], [], '1.22.5');
+            $theme->asset()->usePath()->add('style2-css', 'css/style2.css', [], [], '1.17.7');
 		
 
             if (BaseHelper::siteLanguageDirection() == 'rtl') {

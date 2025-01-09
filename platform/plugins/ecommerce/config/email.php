@@ -194,5 +194,17 @@ return [
                 'product' => 'Product',
             ],
         ],
+        'saved_boat_email' => [
+            'title' => 'Saved Boat Email',
+            'description' => 'Send Customer when a boat bookes',
+            'subject' => 'Booked Boat',
+            'can_off' => true,
+            'variables' => [
+                'customer_name' => 'plugins/ecommerce::ecommerce.customer_name',
+                'boat_title' => 'Boat Title',
+                'total_price' => 'Total Price',
+                'vat_total' => 'VAT Total',
+            ],
+        ],
     ],
 ];

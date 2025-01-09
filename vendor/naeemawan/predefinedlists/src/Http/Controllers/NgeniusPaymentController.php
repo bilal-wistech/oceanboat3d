@@ -23,96 +23,95 @@ class NgeniusPaymentController extends BaseController{
 
 
     public function createtransaction($id){
-    $url = $this->url;
-    $outlet = $this->outlet_id;
-
-    $postData = new \StdClass(); 
-    $postData->action = "PURCHASE";
-    $postData->amount = new \StdClass();
-    $postData->amount->currencyCode = get_application_currency()['title'];
-    $postData->merchantAttributes = new \StdClass();
-    $postData->merchantAttributes->cancelUrl = url('/');
-    $postData->merchantAttributes->skipConfirmationPage = true;
-    $postData->billingAddress = new \StdClass();
-
-    $route = Route::current()->uri;
-
-    if ($route == 'transaction/{id}') {
-        $order = BoatEnquiry::where('id', $id)->first();
-        if ($order->paypage_url != null && !$order->is_finished) {
-            return redirect($order->paypage_url);
-        }
-
-        $postData->merchantAttributes->redirectUrl = url('/transaction/success');
-        $postData->amount->value = get_ecommerce_setting('down_payment') * 100;
-        $postData->merchantOrderReference = 'OBCE-' . $order->id;
-        $postData->emailAddress = $order->customer->email;
-        $name = explode(" ", $order->customer->name);
-    } else {
-        $order = Order::where('id', $id)->first();
-
-        $postData->merchantAttributes->redirectUrl = url('/accessories/success');
-        $postData->amount->value = $order->amount * 100;
-        $postData->merchantOrderReference = 'OBAC-' . $order->id;
-        $postData->emailAddress = $order->user->email ?: $order->address->email;
-        $name = explode(" ", $order->user->name ?: $order->address->name);
-    }
-
-    $postData->billingAddress->firstName = isset($name[0]) ? $name[0] : ' ';
-    $postData->billingAddress->lastName = isset($name[1]) ? $name[1] : ' ';
-
-    if (cache()->has('access_token')) {
-        $token = cache()->get('access_token');
-    } else {
-        $this->accesstoken();
-        $token = cache()->get('access_token');
-    }
-
-    $json = json_encode($postData);
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $url . "/transactions/outlets/" . $outlet . "/orders");
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-        "Authorization: Bearer " . $token, 
-        "Content-Type: application/vnd.ni-payment.v2+json",
-        "Accept: application/vnd.ni-payment.v2+json"
-    ));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-
-    $output = json_decode(curl_exec($ch));
-    curl_close($ch);
-
-    if (isset($output->code) && $output->code != 200) {
-        cache()->put('failure', 1, 60 * 5);
-        session()->flash('error_msg', 'Error Code: ' . $output->code . ' :. Your payment is not accepted!');
-        return back()->withInput();
-    }
-
-    if (isset($output->_id)) {
-        $order_reference = $output->reference;
-        $order_paypage_url = $output->_links->payment->href;
-        $order_id = $output->_id;
-
+        $url = $this->url;
+        $outlet = $this->outlet_id;
+    
+        $postData = new \StdClass(); 
+        $postData->action = "PURCHASE";
+        $postData->amount = new \StdClass();
+        $postData->amount->currencyCode = get_application_currency()['title'];
+        $postData->merchantAttributes = new \StdClass();
+        $postData->merchantAttributes->cancelUrl = url('/');
+        $postData->merchantAttributes->skipConfirmationPage = true;
+        $postData->billingAddress = new \StdClass();
+    
+        $route = Route::current()->uri;
+    
         if ($route == 'transaction/{id}') {
-            $order->order_id = $order_id;
-            $order->paypage_url = $order_paypage_url;
+            $order = BoatEnquiry::where('id', $id)->first();
+            if ($order->paypage_url != null && !$order->is_finished) {
+                return redirect($order->paypage_url);
+            }
+    
+            $postData->merchantAttributes->redirectUrl = url('/transaction/success');
+            $postData->amount->value = get_ecommerce_setting('down_payment') * 100;
+            $postData->merchantOrderReference = 'OBCE-' . $order->id;
+            $postData->emailAddress = $order->customer->email;
+            $name = explode(" ", $order->customer->name);
+        } else {
+            $order = Order::where('id', $id)->first();
+    
+            $postData->merchantAttributes->redirectUrl = url('/accessories/success');
+            $postData->amount->value = $order->amount * 100;
+            $postData->merchantOrderReference = 'OBAC-' . $order->id;
+            $postData->emailAddress = $order->user->email ?: $order->address->email;
+            $name = explode(" ", $order->user->name ?: $order->address->name);
         }
-        $order->reference = $order_reference;
-        $order->save();
-
-        return redirect($order_paypage_url);
-    } elseif (isset($output->status) && $output->status == 401) {
-        $this->accesstoken();
-        return $this->createtransaction($order->id);
-    } else {
-        cache()->put('failure', 1, 60 * 5);
-        return redirect()->route('customer.overview');
+    
+        $postData->billingAddress->firstName = isset($name[0]) ? $name[0] : ' ';
+        $postData->billingAddress->lastName = isset($name[1]) ? $name[1] : ' ';
+    
+        if (cache()->has('access_token')) {
+            $token = cache()->get('access_token');
+        } else {
+            $this->accesstoken();
+            $token = cache()->get('access_token');
+        }
+    
+        $json = json_encode($postData);
+        $ch = curl_init();
+    
+        curl_setopt($ch, CURLOPT_URL, $url . "/transactions/outlets/" . $outlet . "/orders");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            "Authorization: Bearer " . $token, 
+            "Content-Type: application/vnd.ni-payment.v2+json",
+            "Accept: application/vnd.ni-payment.v2+json"
+        ));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+    
+        $output = json_decode(curl_exec($ch));
+        curl_close($ch);
+    
+        if (isset($output->code) && $output->code != 200) {
+            cache()->put('failure', 1, 60 * 5);
+            session()->flash('error_msg', 'Error Code: ' . $output->code . ' :. Your payment is not accepted!');
+            return back()->withInput();
+        }
+    
+        if (isset($output->_id)) {
+            $order_reference = $output->reference;
+            $order_paypage_url = $output->_links->payment->href;
+            $order_id = $output->_id;
+    
+            if ($route == 'transaction/{id}') {
+                $order->order_id = $order_id;
+                $order->paypage_url = $order_paypage_url;
+            }
+            $order->reference = $order_reference;
+            $order->save();
+    
+            return redirect($order_paypage_url);
+        } elseif (isset($output->status) && $output->status == 401) {
+            $this->accesstoken();
+            return $this->createtransaction($order->id);
+        } else {
+            cache()->put('failure', 1, 60 * 5);
+            return redirect()->route('customer.overview');
+        }
     }
-}
-
-
+    
     public function accesstoken(){
         // dd("under working");
         $url = $this->url;

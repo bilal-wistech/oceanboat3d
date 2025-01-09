@@ -2,15 +2,19 @@
 
 namespace Botble\Dashboard\Http\Controllers;
 
+
 use Assets;
-use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Exception;
+use Illuminate\Http\Request;
+use NaeemAwan\PredefinedLists\Models\BoatView;
 use Botble\Base\Http\Controllers\BaseController;
 use Botble\Base\Http\Responses\BaseHttpResponse;
-use Botble\Dashboard\Repositories\Interfaces\DashboardWidgetInterface;
-use Botble\Dashboard\Repositories\Interfaces\DashboardWidgetSettingInterface;
-use Exception;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Http\Request;
+use Botble\ACL\Repositories\Interfaces\UserInterface;
+use Botble\Dashboard\Repositories\Interfaces\DashboardWidgetInterface;
+use NaeemAwan\PredefinedLists\Repositories\Interfaces\BoatViewInterface;
+use Botble\Dashboard\Repositories\Interfaces\DashboardWidgetSettingInterface;
+use NaeemAwan\PredefinedLists\Repositories\Interfaces\PredefinedListInterface;
 
 class DashboardController extends BaseController
 {
@@ -20,14 +24,20 @@ class DashboardController extends BaseController
 
     protected UserInterface $userRepository;
 
+    protected BoatViewInterface $boatViewRepository;
+    protected PredefinedListInterface $predefinedListRepository;
     public function __construct(
         DashboardWidgetSettingInterface $widgetSettingRepository,
         DashboardWidgetInterface $widgetRepository,
-        UserInterface $userRepository
+        UserInterface $userRepository,
+        BoatViewInterface $boatViewRepository,
+        PredefinedListInterface $predefinedListRepository
     ) {
         $this->widgetSettingRepository = $widgetSettingRepository;
         $this->widgetRepository = $widgetRepository;
         $this->userRepository = $userRepository;
+        $this->boatViewRepository = $boatViewRepository;
+        $this->predefinedListRepository = $predefinedListRepository;
     }
 
     public function getDashboard(Request $request)
@@ -58,13 +68,54 @@ class DashboardController extends BaseController
         $availableWidgetIds = collect($widgetData)->pluck('id')->all();
 
         $widgets = $widgets->reject(function ($item) use ($availableWidgetIds) {
-            return ! in_array($item->id, $availableWidgetIds);
+            return !in_array($item->id, $availableWidgetIds);
         });
 
         $statWidgets = collect($widgetData)->where('type', '!=', 'widget')->pluck('view')->all();
         $userWidgets = collect($widgetData)->where('type', 'widget')->pluck('view')->all();
+        $boatViews = BoatView::all();
+        $result = [];
 
-        return view('core/dashboard::list', compact('widgets', 'userWidgets', 'statWidgets'));
+        foreach ($boatViews as $boatView) {
+            $predefined_list = $this->predefinedListRepository->findById($boatView->entity_id);
+
+            if ($boatView->entity_type == 'boat') {
+                $result[] = [
+                    'id' => $predefined_list->id,
+                    'parent_id' => $predefined_list->parent_id,
+                    'boat_title' => $predefined_list->ltitle,
+                    'count' => $boatView->total_count,
+                    'accessories' => []
+                ];
+            } elseif ($boatView->entity_type == 'option') {
+                $lastIndex = count($result) - 1;
+                $sub_category = $this->predefinedListRepository->findById($predefined_list->parent_id);
+                $category = $this->predefinedListRepository->findById($sub_category->parent_id);
+
+                if (isset($result[$lastIndex])) {
+                    $result[$lastIndex]['accessories'][] = [
+                        'category' => [
+                            'id' => $category->id,
+                            'parent_id' => $category->parent_id,
+                            'title' => $category->ltitle,
+                        ],
+                        'sub_category' => [
+                            'id' => $sub_category->id,
+                            'parent_id' => $sub_category->parent_id,
+                            'title' => $sub_category->ltitle,
+                        ],
+                        'accessory' => [
+                            'id' => $predefined_list->id,
+                            'parent_id' => $predefined_list->parent_id,
+                            'title' => $predefined_list->ltitle,
+                            'count' => $boatView->total_count,
+                        ]
+                    ];
+                }
+            }
+        }
+        // dd($result);
+        return view('core/dashboard::list', compact('widgets', 'userWidgets', 'statWidgets', 'result'));
     }
 
     public function postEditWidgetSettingItem(Request $request, BaseHttpResponse $response)
@@ -74,7 +125,7 @@ class DashboardController extends BaseController
                 'name' => $request->input('name'),
             ]);
 
-            if (! $widget) {
+            if (!$widget) {
                 return $response
                     ->setError()
                     ->setMessage(trans('core/dashboard::dashboard.widget_not_exists'));
@@ -85,7 +136,7 @@ class DashboardController extends BaseController
                 'user_id' => $request->user()->getKey(),
             ]);
 
-            $widgetSetting->settings = array_merge((array)$widgetSetting->settings, [
+            $widgetSetting->settings = array_merge((array) $widgetSetting->settings, [
                 $request->input('setting_name') => $request->input('setting_value'),
             ]);
 
@@ -121,7 +172,7 @@ class DashboardController extends BaseController
         $widget = $this->widgetRepository->getFirstBy([
             'name' => $request->input('name'),
         ], ['id']);
-        if (! empty($widget)) {
+        if (!empty($widget)) {
             $widgetSetting = $this->widgetSettingRepository->firstOrCreate([
                 'widget_id' => $widget->id,
                 'user_id' => $request->user()->getKey(),
@@ -144,7 +195,8 @@ class DashboardController extends BaseController
                 'user_id' => $request->user()->getKey(),
             ]);
 
-            if ($request->has('widgets.' . $widget->name) &&
+            if (
+                $request->has('widgets.' . $widget->name) &&
                 $request->input('widgets.' . $widget->name) == 1
             ) {
                 $widgetSetting->status = 1;

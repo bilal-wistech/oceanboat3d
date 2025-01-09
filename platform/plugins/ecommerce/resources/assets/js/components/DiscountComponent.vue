@@ -84,6 +84,10 @@
                                     <option value="specific-product">{{ __('discount.product')}}</option>
                                     <option value="customer" v-if="type_option !== 'same-price'">{{ __('discount.customer')}}</option>
                                     <option value="product-variant">{{ __('discount.variant') }}</option>
+                                    {# boats option on clicking it the following route should run and display boats: (products.get-list-boats-for-select)
+                                        the data should be displayed similar to the div with id=div-select-customer just the name of boat only and no need of adding search    
+                                    #}
+                                    <option value="boats">{{ __('discount.boats') }}</option>
                                 </select>
                                 <svg class="svg-next-icon svg-next-icon-size-16">
                                     <use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#select-chevron"></use>

@@ -63,12 +63,11 @@ class HandleShippingFeeService
 
         $cacheKey = $this->getCacheKey($data);
         $cacheValue = $this->getCacheValue($cacheKey);
-        $cacheValue=null;
         if ($cacheValue) {
             $result[ShippingMethodEnum::DEFAULT] = $cacheValue;
         } else {
             $default = $this->getShippingFee($data, ShippingMethodEnum::DEFAULT, $option);
-//dd($default, $data, ShippingMethodEnum::DEFAULT, $option);
+
             if ($default) {
                 $result[ShippingMethodEnum::DEFAULT] = $default;
             }
@@ -103,23 +102,19 @@ class HandleShippingFeeService
 
         $orderTotal = Arr::get($data, 'order_total', 0);
 
-        if (EcommerceHelper::isUsingInMultipleCountries()) {            
+        if (EcommerceHelper::isUsingInMultipleCountries()) {
             $country = Arr::get($data, 'country');
-            $country='AE';
-        } else {            
+        } else {
             $country = EcommerceHelper::getFirstCountryId();
         }
 
         $result = [];
         if ($method == ShippingMethodEnum::DEFAULT) {
             $methodKey = $method . '-' . $country;
-
-            
             if (Arr::has($this->shipping, $methodKey)) {
                 $shipping = Arr::get($this->shipping, $methodKey);
             } else {
                 $shipping = $this->shippingRepository->getFirstBy(['country' => $country]);
-                
                 Arr::set($this->shipping, $methodKey, $shipping);
             }
 

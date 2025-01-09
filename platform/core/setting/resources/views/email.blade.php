@@ -151,7 +151,6 @@
             </div>
         </div>
         @endif
-
         {!! apply_filters(BASE_FILTER_AFTER_SETTING_EMAIL_CONTENT, null) !!}
 
         <div class="flexbox-annotated-section" style="border: none">

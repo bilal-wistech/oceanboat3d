@@ -31,7 +31,6 @@ class PredefinedListController extends BaseController{
     public function create(FormBuilder $formBuilder,$parent = 0)
     {
         page_title()->setTitle('Predefined List Create');
-
         return $formBuilder->create(PredefinedListForm::class, ['parent' => $parent])->setFormOption('url',route('predefined-list.store',$parent))->renderForm();
     }
 
