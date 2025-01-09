@@ -441,7 +441,7 @@ class PublicCheckoutController
                 'building' => $address->building,
                 'floor' => $address->floor,
                 'zip_code' => $address->zip_code,
-                'postal_code' => $address->postal_code,
+                'zip_code' => $address->postal_code,
                 'address_id' => $address->id,
             ];
         } elseif ((array)$request->input('address', [])) {

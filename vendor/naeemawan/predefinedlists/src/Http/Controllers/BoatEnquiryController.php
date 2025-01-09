@@ -1,29 +1,28 @@
 <?php
 namespace NaeemAwan\PredefinedLists\Http\Controllers;
 
-use Botble\Base\Http\Controllers\BaseController;
-use NaeemAwan\PredefinedLists\Repositories\Interfaces\BoatEnquiryInterface;
-use NaeemAwan\PredefinedLists\Tables\BoatEnquiryTable;
+use Illuminate\Http\Request;
 use Botble\Base\Forms\FormBuilder;
-use Botble\Base\Events\BeforeEditContentEvent;
 use Botble\Base\Events\CreatedContentEvent;
 use Botble\Base\Events\DeletedContentEvent;
 use Botble\Base\Events\UpdatedContentEvent;
+use Botble\Base\Events\BeforeEditContentEvent;
+use Botble\Base\Http\Controllers\BaseController;
 use Botble\Base\Http\Responses\BaseHttpResponse;
-use NaeemAwan\PredefinedLists\Http\Requests\PredefinedListRequest;
-use NaeemAwan\PredefinedLists\Forms\BoatEnquiryForm;
-use Illuminate\Http\Request;
-
-use NaeemAwan\PredefinedLists\Models\PredefinedList;
 use NaeemAwan\PredefinedLists\Models\BoatEnquiry;
+use NaeemAwan\PredefinedLists\Forms\BoatEnquiryForm;
+use NaeemAwan\PredefinedLists\Models\PredefinedList;
+use NaeemAwan\PredefinedLists\Tables\BoatViewsTable;
+use NaeemAwan\PredefinedLists\Tables\BoatEnquiryTable;
 use NaeemAwan\PredefinedLists\Models\BoatEnquiryDetail;
+use NaeemAwan\PredefinedLists\Http\Requests\PredefinedListRequest;
+use NaeemAwan\PredefinedLists\Repositories\Interfaces\BoatEnquiryInterface;
 
+class BoatEnquiryController extends BaseController
+{
+    protected PredefinedListInterface $predefinedListRepository;
 
-
-class BoatEnquiryController extends BaseController{
-	protected PredefinedListInterface $predefinedListRepository;
-
-	public function __construct(BoatEnquiryInterface $BoatEnquiryRepository)
+    public function __construct(BoatEnquiryInterface $BoatEnquiryRepository)
     {
         $this->BoatEnquiryRepository = $BoatEnquiryRepository;
     }
@@ -32,50 +31,78 @@ class BoatEnquiryController extends BaseController{
     {
         return $table->renderTable();
     }
+    public function botViews(BoatViewsTable $table)
+    {
+        return $table->renderTable();
+    }
 
     public function edit(int $id, FormBuilder $formBuilder, Request $request)
     {
-        $boat_enquiry = $this->BoatEnquiryRepository->findOrFail($id);
+        $query = BoatEnquiry::join('predefined_list as p', 'p.id', '=', 'boat_enquiries.boat_id')
+            ->select('boat_enquiries.*', 'p.ltitle')
+            ->with('details');
 
-        event(new BeforeEditContentEvent($request, $boat_enquiry));
-        // ----------------------------------------------- //
+        if (!auth()->user()->super_user) {
+            $query->where(['boat_enquiries.id' => $id, 'boat_enquiries.user_id' => auth('customer')->id()]);
+        } else {
+            $query->where('boat_enquiries.id', $id);
+        }
 
-$boat = BoatEnquiry::where(['boat_enquiries.id'=> $id ])
-        ->join('predefined_list as p', 'p.id', '=', 'boat_enquiries.boat_id') 
-        ->select('boat_enquiries.*', 'p.ltitle')    
-        ->with('details')    
-        ->first();
+        $boat_enquiry = $query->first();
 
-        if (! $boat) {
+        if (!$boat_enquiry) {
             abort(404);
         }
 
-        //dd($boat->toArray());
+        foreach ($boat_enquiry->details as $details) {
+            $opt = PredefinedList::where('id', $details->option_id)
+                ->select(
+                    'predefined_list.id',
+                    'predefined_list.ltitle',
+                    'predefined_list.color',
+                    'predefined_list.is_standard_option',
+                    'predefined_list.file',
+                    'predefined_list.type'
+                )
+                ->first()
+                ->toArray();
 
-        foreach( $boat->details as $details){    
-            
-            $opt = PredefinedList::where(['id'=> $details->option_id])->select('predefined_list.ltitle')->first()->toArray();
-            $details['ltitle'] =$opt['ltitle'];
+            $details['ltitle'] = $opt['ltitle'];
+            $details['color'] = $opt['color'];
+            $details['is_standard_option'] = $opt['is_standard_option'];
+            $details['file'] = $opt['file'];
+            $details['type'] = $opt['type'];
         }
 
         $result = BoatEnquiryDetail::join('predefined_list as c', 'boat_enquiry_details.subcat_slug', '=', 'c.type')
-        ->join('predefined_list as p', 'c.parent_id', '=', 'p.id')
-        ->whereIn('boat_enquiry_details.id',$boat->details->pluck('id')->toArray())
-        ->orderBy('p.sort_order','ASC')
-        ->orderBy('c.sort_order','ASC')
-        ->select('c.id', 'boat_enquiry_details.option_id', 'c.ltitle','c.image', 'boat_enquiry_details.subcat_slug')
-        ->with('enquiry_option')
-        ->get();
+            ->join('predefined_list as p', 'c.parent_id', '=', 'p.id')
+            ->whereIn('boat_enquiry_details.id', $boat_enquiry->details->pluck('id')->toArray())
+            ->orderBy('p.sort_order', 'ASC')
+            ->orderBy('c.sort_order', 'ASC')
+            ->select(
+                'c.id',
+                'c.ltitle',
+                'c.image',
+                'c.color',
+                'c.is_standard_option',
+                'boat_enquiry_details.option_id',
+                'boat_enquiry_details.subcat_slug',
+                'boat_enquiry_details.has_discount',
+                'boat_enquiry_details.discount_code',
+                'boat_enquiry_details.discount_amount'
+            )
+            ->with('enquiry_option')
+            ->get();
 
-//dd($boat_enquiry,$boat->toArray(), $result->toArray());
-
-$boat_enquiry = $boat;
-// ================================================ //
+        event(new BeforeEditContentEvent($request, $boat_enquiry));
 
         page_title()->setTitle("View Enquiry");
 
-        return $formBuilder->create(BoatEnquiryForm::class, ['model' => $boat_enquiry])->setFormOption('url',route('custom-boat-enquiries.update',$id))->renderForm();
+        return $formBuilder->create(BoatEnquiryForm::class, ['model' => $boat_enquiry])
+            ->setFormOption('url', route('custom-boat-enquiries.update', $id))
+            ->renderForm();
     }
+
 
     public function update(int $id, Request $request, BaseHttpResponse $response)
     {

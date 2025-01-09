@@ -18,16 +18,19 @@ class BoatEnquiryDetail extends BaseModel
 		'enquiry_id',
 		'subcat_id',
 		'option_id',
+		'has_discount',
+		'discount_code',
+		'discount_amount',
 	];
 
-    public function enquiry_option()
+	public function enquiry_option()
 	{
-	  return $this->BelongsTo(PredefinedList::class,'option_id');
+		return $this->BelongsTo(PredefinedList::class, 'option_id');
 	}
 
 	public function slug()
 	{
-	  return $this->BelongsTo(PredefinedList::class,'subcat_slug','type');
+		return $this->BelongsTo(PredefinedList::class, 'subcat_slug', 'type');
 	}
-	
+
 }

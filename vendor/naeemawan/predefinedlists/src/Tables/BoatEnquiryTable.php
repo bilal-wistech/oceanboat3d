@@ -50,16 +50,18 @@ class BoatEnquiryTable extends TableAbstract
             ->editColumn('total_price', function ($item) {
                 return $item->total_price;
             })
-            ->editColumn('boat_id', function ($item) {
-                if (! Auth::user()->hasPermission('predefined-list.edit')) {
-                    return BaseHelper::clean($item->boat->ltitle);
-                }
-
-                return Html::link(route('predefined-list.edit', $item->boat_id), BaseHelper::clean($item->boat->ltitle));
+            ->editColumn('boat_id', function ($item) { 
+                return BaseHelper::clean($item->boat->ltitle);
             })
             ->editColumn('status', function ($item) {
                 return $item->status->toHtml();
             })
+            ->editColumn('is_finished', function ($item) {
+                return $item->is_finished 
+                    ? '<span class="label label-success">Paid</span>' 
+                    : '<span class="label label-danger">Saved Boat</span>';
+            })
+            ->rawColumns(['is_finished']) // Ensure the HTML is rendered            
             ->editColumn('checkbox', function ($item) {
                 return $this->getCheckbox($item->id);
             });
@@ -79,7 +81,8 @@ class BoatEnquiryTable extends TableAbstract
             'boat_id',
             'total_price',
             'status',
-        ])->where('is_finished',1);
+            'is_finished',
+        ]);
         return $this->applyScopes($query);
     }
 
@@ -120,6 +123,11 @@ class BoatEnquiryTable extends TableAbstract
             'status' => [
                 'name' => 'status',
                 'title' => trans('core/base::tables.status'),
+                'searchable'=>false,
+            ],
+            'is_finished' => [
+                'name' => 'is_finished',
+                'title' => trans('core/base::tables.is_finished'),
                 'searchable'=>false,
             ]
         ];

@@ -70,7 +70,7 @@
             <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.name')) has-error @endif">
                     <input type="text" name="address[name]" id="address_name" placeholder="First Name" class="form-control address-control-item address-control-item-required checkout-input"
-                           value="{{ old('address.name', Arr::get($sessionCheckoutData, 'name')) }}" onchange="checkData(this)">
+                           value="{{ old('address.name', Arr::get($sessionCheckoutData, 'name')) }}">
                     {!! Form::error('address.name', $errors) !!}
                 </div>
             </div>
@@ -79,7 +79,7 @@
             <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.lname')) has-error @endif">
                     <input type="text" name="address[lname]" id="address_lname" placeholder="Last Name" class="form-control address-control-item address-control-item-required checkout-input"
-                           value="{{ old('address.lname', Arr::get($sessionCheckoutData, 'lname')) }}" onchange="checkData(this)">
+                           value="{{ old('address.lname', Arr::get($sessionCheckoutData, 'lname')) }}">
                     {!! Form::error('address.lname', $errors) !!}
                 </div>
             </div>
@@ -176,7 +176,7 @@
                             <i class="fas fa-angle-down"></i>
                         </div>
                     @else
-                        <input id="address_city" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="{{ __('City') }}" name="address[city]" value="{{ old('address.city', Arr::get($sessionCheckoutData, 'city')) }}" onchange="checkData(this)">
+                        <input id="address_city" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="{{ __('City') }}" name="address[city]" value="{{ old('address.city', Arr::get($sessionCheckoutData, 'city')) }}">
                     @endif
                     {!! Form::error('address.city', $errors) !!}
                 </div>
@@ -185,13 +185,13 @@
  <!-- comment end -->
              <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.area')) has-error @endif">
-                    <input id="address_area" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="District or Area" name="address[area]" value="{{ old('address.area', Arr::get($sessionCheckoutData, 'area')) }}" onchange="checkData(this)">
+                    <input id="address_area" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="District or Area" name="address[area]" value="{{ old('address.area', Arr::get($sessionCheckoutData, 'area')) }}">
                     {!! Form::error('address.area', $errors) !!}
                 </div>
             </div>
             <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.address')) has-error @endif">
-                    <input id="address_address" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Street Name" name="address[address]" value="{{ old('address.address', Arr::get($sessionCheckoutData, 'address')) }}" onchange="checkData(this)">
+                    <input id="address_address" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Street Name" name="address[address]" value="{{ old('address.address', Arr::get($sessionCheckoutData, 'address')) }}">
                     {!! Form::error('address.address', $errors) !!}
                 </div>
             </div>
@@ -212,14 +212,14 @@
 
             <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.building')) has-error @endif">
-                    <input id="address_building" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Building or Villa No." name="address[building]" value="{{ old('address.building', Arr::get($sessionCheckoutData, 'building')) }}" onchange="checkData(this)">
+                    <input id="address_building" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Building or Villa No." name="address[building]" value="{{ old('address.building', Arr::get($sessionCheckoutData, 'building')) }}">
                     {!! Form::error('address.building', $errors) !!}
                 </div>
             </div>
 
             <div class="col-12">
                 <div class="form-group mb-4 @if ($errors->has('address.floor')) has-error @endif">
-                    <input id="address_floor" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Floor or Flat No." name="address[floor]" value="{{ old('address.floor', Arr::get($sessionCheckoutData, 'floor')) }}" onchange="checkData(this)">
+                    <input id="address_floor" type="text" class="form-control address-control-item address-control-item-required checkout-input" placeholder="Floor or Flat No." name="address[floor]" value="{{ old('address.floor', Arr::get($sessionCheckoutData, 'floor')) }}">
                     {!! Form::error('address.floor', $errors) !!}
                 </div>
             </div>
@@ -291,23 +291,6 @@
         }
         
     </script>
-
-    <script>
-        function checkData(data) {
-            // var value = e.target.value;
-            console.log(data.value);
-            // Regular expression to match only English letters and spaces
-            var validValue = data.value.replace(/[^a-zA-Z0-9\s]/g, '');
-            console.log('valid value:'+ validValue);
-            if (data.value !== validValue) {
-                data.value = validValue;
-            } else {
-                data.value = data.value;
-            }
-            console.log(data.value);
-        };
-    </script>
-    
 @endpush
 <style>
     .iti--separate-dial-code .iti__selected-flag{

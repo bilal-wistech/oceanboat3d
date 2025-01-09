@@ -3,91 +3,91 @@ use NaeemAwan\PredefinedLists\Models\PredefinedList;
 use NaeemAwan\PredefinedLists\Models\PredefinedCategory;
 
 if (!function_exists('currentPDLLevel')) {
-    /**
-     * return storage dir path
-     */
-    function currentPDLLevel($parent,$i)
-    {
-      // echo '>'.$i.'<';
-      $model = PredefinedList::select('parent_id')->where('id',$parent)->first();
-      if($model!=null){
-        $i++;
-        if($model->parent_id>0){
-          $i = currentPDLLevel($model->parent_id,$i++);
-        }
+  /**
+   * return storage dir path
+   */
+  function currentPDLLevel($parent, $i)
+  {
+    // echo '>'.$i.'<';
+    $model = PredefinedList::select('parent_id')->where('id', $parent)->first();
+    if ($model != null) {
+      $i++;
+      if ($model->parent_id > 0) {
+        $i = currentPDLLevel($model->parent_id, $i++);
       }
-      return $i;
     }
+    return $i;
+  }
 
 }
 
 // newly added functions 2/21/2023
 if (!function_exists('getEnableDisableIconWithLink')) {
   /**
-  * return status for a given key with toggle link
-  */
-  function getEnableDisableIconWithLink($n,$route,$confrmMsg,$contnr)
+   * return status for a given key with toggle link
+   */
+  function getEnableDisableIconWithLink($n, $route, $confrmMsg, $contnr)
   {
-    return '<a href="'.url($route).'" class="act-confirmation" data-toggle="tooltip" title="" data-confirmationmsg="'.$confrmMsg.'" data-pjxcntr="'.$contnr.'">'.getStatusIconArr()[$n].'</a>';
+    return '<a href="' . url($route) . '" class="act-confirmation" data-toggle="tooltip" title="" data-confirmationmsg="' . $confrmMsg . '" data-pjxcntr="' . $contnr . '">' . getStatusIconArr()[$n] . '</a>';
   }
 }
 if (!function_exists('getStatusIconArr')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function getStatusIconArr()
   {
     return [
-      '0'=>'<span class="label label-rounded label-warning"><i class="fas text-white fa-hourglass"></i></span>',
-      '1'=>'<span class="label label-rounded label-success"><i class="fas text-white fa-check"></i></span>',
+      '0' => '<span class="label label-rounded label-warning"><i class="fas text-white fa-hourglass"></i></span>',
+      '1' => '<span class="label label-rounded label-success"><i class="fas text-white fa-check"></i></span>',
     ];
   }
 }
 
 if (!function_exists('PredefinedCategories')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function PredefinedCategories()
   {
-    return PredefinedCategory::where('status',1)->get();
+    return PredefinedCategory::where('status', 1)->get();
   }
 }
 
 if (!function_exists('childitems')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function childitems($id)
   {
-    return PredefinedList::where('parent_id',$id)->get();
+    return PredefinedList::where('parent_id', $id)->get();
   }
 }
 if (!function_exists('lastitem')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function lastitem($id)
   {
-    return PredefinedList::where(['parent_id'=>$id,'status'=>1])->latest()->first();
+    return PredefinedList::where(['parent_id' => $id, 'status' => 1])->latest()->first();
   }
 }
 
 if (!function_exists('getcategories')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function getcategories()
   {
-    $options=PredefinedCategory::get();
-    return $options->pluck('name','id')->toArray();
+    $options = PredefinedCategory::get();
+    return $options->pluck('name', 'id')->toArray();
   }
 }
 
 if (!function_exists('getStatusArr')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function getStatusArr()
   {
     return [
@@ -99,8 +99,8 @@ if (!function_exists('getStatusArr')) {
 
 if (!function_exists('getSystemLanguages')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function getSystemLanguages()
   {
     return [
@@ -110,8 +110,8 @@ if (!function_exists('getSystemLanguages')) {
 }
 if (!function_exists('getPackageDimensions')) {
   /**
-  * return status array
-  */
+   * return status array
+   */
   function getPackageDimensions($weight)
   {
     $boxes = [
@@ -125,10 +125,33 @@ if (!function_exists('getPackageDimensions')) {
     ];
     foreach ($boxes as $box) {
       if ($weight <= $box['weight']) {
-          return $box['dimensions'];
+        return $box['dimensions'];
       }
     }
-    return [0,0,0];
+    return [0, 0, 0];
   }
 }
-
+if (!function_exists('getIsStandardOptionArr')) {
+  /**
+   * return status array
+   */
+  function getIsStandardOptionArr()
+  {
+    return [
+      '0' => 'Disable',
+      '1' => 'Enable',
+    ];
+  }
+}
+if (!function_exists('getDiscountTypeArr')) {
+  /**
+   * return status array
+   */
+  function getDiscountTypeArr()
+  {
+    return [
+      'percentage' => 'Percentage',
+      'amount' => 'Amount',
+    ];
+  }
+}

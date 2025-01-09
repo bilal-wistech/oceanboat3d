@@ -363,11 +363,11 @@ class RvMedia
         }
 
         $allowedMimeTypes = $this->getConfig('allowed_mime_types');
-
+        
         if (! $this->isChunkUploadEnabled()) {
             if (! $skipValidation) {
                 $validator = Validator::make(['uploaded_file' => $fileUpload], [
-                    'uploaded_file' => 'required|mimes:' . $allowedMimeTypes,
+                    // 'uploaded_file' => 'required',
                 ]);
 
                 if ($validator->fails()) {
@@ -379,7 +379,7 @@ class RvMedia
             }
 
             $maxUploadFilesizeAllowed = setting('max_upload_filesize');
-
+            
             if ($maxUploadFilesizeAllowed && ($fileUpload->getSize() / 1024) / 1024 > (float)$maxUploadFilesizeAllowed) {
                 return [
                     'error' => true,
@@ -390,7 +390,7 @@ class RvMedia
             }
 
             $maxSize = $this->getServerConfigMaxUploadFileSize();
-
+            
             if ($fileUpload->getSize() / 1024 > (int)$maxSize) {
                 return [
                     'error' => true,
@@ -405,7 +405,7 @@ class RvMedia
             $file = $this->fileRepository->getModel();
 
             $fileExtension = $fileUpload->getClientOriginalExtension();
-
+            
             if (! $skipValidation && ! in_array(strtolower($fileExtension), explode(',', $allowedMimeTypes))) {
                 return [
                     'error' => true,
@@ -452,7 +452,7 @@ class RvMedia
             $this->uploadManager->saveFile($filePath, $content, $fileUpload);
 
             $data = $this->uploadManager->fileDetails($filePath);
-
+            
             if (! $skipValidation && empty($data['mime_type'])) {
                 return [
                     'error' => true,

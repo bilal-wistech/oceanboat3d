@@ -308,7 +308,7 @@ class OrderController extends BaseController
         }
 
         $order = $this->orderRepository->findOrFail($id, ['products', 'user']);
-    
+
         page_title()->setTitle(trans('plugins/ecommerce::order.edit_order', ['code' => $order->code]));
 
         $weight = $order->products_weight;
