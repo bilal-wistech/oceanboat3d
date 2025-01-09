@@ -142,11 +142,11 @@
                   {{ theme_option('phone') }}
                 </p>
             @endif
-                <!--    @if (theme_option('contact_email'))-->
-                <!--    <p class="wow fadeIn animated text-black mb-40">-->
-                <!--        {{ theme_option('contact_email') }}-->
-                <!--    </p>-->
-                <!--@endif-->
+                    {{-- @if (theme_option('contact_email'))
+                    <p class="wow fadeIn animated text-black mb-40">
+                        {{ theme_option('contact_email') }}
+                    </p>
+                @endif --}}
                 <h4 class="mt-20 mb-10 fw-600 wow fadeIn animated">{{ __('Follow us') }}</h4>
                 <div class="social-icons d-flex mb-40">
                     <ul>

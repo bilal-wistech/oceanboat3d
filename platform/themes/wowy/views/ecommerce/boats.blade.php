@@ -9,7 +9,7 @@
     $categories=PredefinedCategories();
 
 @endphp
-
+<div class = "container mt-60 mb-60">
 <div class="col-lg-12">
   <ul class="nav nav-pills" id="myTab" role="tablist">
     <!-- desktop -->
@@ -52,6 +52,8 @@
 <div class="products-listing position-relative mt-70">
   @include(Theme::getThemeNamespace() . '::views.ecommerce.includes.boat-items', compact('products'))
 </div>
+
+</div>
 <!-- scrolling -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
@@ -62,4 +64,3 @@ jQuery(function($) {
     }, 'slow');
 });
 </script>
-

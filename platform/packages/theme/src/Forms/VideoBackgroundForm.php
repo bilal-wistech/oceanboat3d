@@ -4,8 +4,8 @@ namespace Botble\Theme\Forms;
 
 use AdsManager;
 use Botble\Base\Forms\FormAbstract;
-use Botble\Theme\Models\VideoBackground;
 use Botble\Theme\Http\Requests\VideoBackgroundRequest;
+use Botble\Theme\Models\VideoBackground;
 
 class VideoBackgroundForm extends FormAbstract
 {

@@ -2,180 +2,181 @@
 
 namespace Botble\Ecommerce\Providers;
 
+use Cart;
 use ApiHelper;
-use Botble\Base\Traits\LoadAndPublishDataTrait;
-use Botble\Ecommerce\Commands\SendAbandonedCartsEmailCommand;
-use Botble\Ecommerce\Facades\CartFacade;
-use Botble\Ecommerce\Facades\CurrencyFacade;
-use Botble\Ecommerce\Facades\EcommerceHelperFacade;
-use Botble\Ecommerce\Facades\InvoiceHelperFacade;
-use Botble\Ecommerce\Facades\OrderHelperFacade;
-use Botble\Ecommerce\Facades\OrderReturnHelperFacade;
-use Botble\Ecommerce\Facades\ProductCategoryHelperFacade;
-use Botble\Ecommerce\Http\Middleware\CaptureFootprintsMiddleware;
-use Botble\Ecommerce\Http\Middleware\RedirectIfCustomer;
-use Botble\Ecommerce\Http\Middleware\RedirectIfNotCustomer;
-use Botble\Ecommerce\Models\Address;
+use SeoHelper;
+use SlugHelper;
+use EmailHandler;
+use SocialService;
+use EcommerceHelper;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
+use Botble\Ecommerce\Models\Tax;
 use Botble\Ecommerce\Models\Brand;
+use Botble\Ecommerce\Models\Order;
+use Botble\Payment\Models\Payment;
+use Botble\Ecommerce\Models\Option;
+use Botble\Ecommerce\Models\Review;
+use Botble\Ecommerce\Models\Address;
+use Botble\Ecommerce\Models\Invoice;
+use Botble\Ecommerce\Models\Product;
+use Illuminate\Support\Facades\File;
 use Botble\Ecommerce\Models\Currency;
 use Botble\Ecommerce\Models\Customer;
 use Botble\Ecommerce\Models\Discount;
+use Botble\Ecommerce\Models\Shipment;
+use Botble\Ecommerce\Models\Shipping;
+use Botble\Ecommerce\Models\Wishlist;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 use Botble\Ecommerce\Models\FlashSale;
-use Botble\Ecommerce\Models\GlobalOption;
-use Botble\Ecommerce\Models\GlobalOptionValue;
-use Botble\Ecommerce\Models\GroupedProduct;
-use Botble\Ecommerce\Models\Invoice;
-use Botble\Ecommerce\Models\Option;
+use Illuminate\Foundation\AliasLoader;
+use Botble\Ecommerce\Models\ProductTag;
+use Illuminate\Support\ServiceProvider;
+use Botble\Ecommerce\Facades\CartFacade;
 use Botble\Ecommerce\Models\OptionValue;
-use Botble\Ecommerce\Models\Order;
+use Botble\Ecommerce\Models\OrderReturn;
+use Botble\Ecommerce\Models\GlobalOption;
 use Botble\Ecommerce\Models\OrderAddress;
 use Botble\Ecommerce\Models\OrderHistory;
 use Botble\Ecommerce\Models\OrderProduct;
-use Botble\Ecommerce\Models\OrderReturn;
-use Botble\Ecommerce\Models\OrderReturnItem;
-use Botble\Ecommerce\Models\Product;
-use Botble\Ecommerce\Models\ProductAttribute;
-use Botble\Ecommerce\Models\ProductAttributeSet;
-use Botble\Ecommerce\Models\ProductCategory;
-use Botble\Ecommerce\Models\ProductCollection;
 use Botble\Ecommerce\Models\ProductLabel;
-use Botble\Ecommerce\Models\ProductTag;
-use Botble\Ecommerce\Models\ProductVariation;
-use Botble\Ecommerce\Models\ProductVariationItem;
-use Botble\Ecommerce\Models\Review;
-use Botble\Ecommerce\Models\Shipment;
-use Botble\Ecommerce\Models\ShipmentHistory;
-use Botble\Ecommerce\Models\Shipping;
 use Botble\Ecommerce\Models\ShippingRule;
-use Botble\Ecommerce\Models\ShippingRuleItem;
 use Botble\Ecommerce\Models\StoreLocator;
-use Botble\Ecommerce\Models\Tax;
-use Botble\Ecommerce\Models\Wishlist;
-use Botble\Ecommerce\Repositories\Caches\AddressCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\BrandCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\CurrencyCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\CustomerCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\DiscountCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\FlashSaleCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\GlobalOptionCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\GroupedProductCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\InvoiceCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderAddressCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderHistoryCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderProductCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderReturnCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\OrderReturnItemCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductAttributeCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductAttributeSetCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductCategoryCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductCollectionCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductLabelCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductTagCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductVariationCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ProductVariationItemCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ReviewCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ShipmentCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ShipmentHistoryCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ShippingCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ShippingRuleCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\ShippingRuleItemCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\StoreLocatorCacheDecorator;
+use Botble\Ecommerce\Models\GroupedProduct;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Routing\Events\RouteMatched;
+use Botble\Ecommerce\Facades\CurrencyFacade;
+use Botble\Ecommerce\Models\OrderReturnItem;
+use Botble\Ecommerce\Models\ProductCategory;
+use Botble\Ecommerce\Models\ShipmentHistory;
+use Botble\Ecommerce\Models\ProductAttribute;
+use Botble\Ecommerce\Models\ProductVariation;
+use Botble\Ecommerce\Models\ShippingRuleItem;
+use Botble\Ecommerce\Models\GlobalOptionValue;
+use Botble\Ecommerce\Models\ProductCollection;
+use Botble\Ecommerce\Supports\EcommerceWidget;
+use Botble\Base\Traits\LoadAndPublishDataTrait;
+use Botble\Ecommerce\Facades\OrderHelperFacade;
+use Botble\Ecommerce\Models\ProductAttributeSet;
+use Botble\Ecommerce\Facades\InvoiceHelperFacade;
+use Botble\Ecommerce\Models\ProductVariationItem;
+use Botble\Ecommerce\Facades\EcommerceHelperFacade;
+use Botble\Ecommerce\Facades\OrderReturnHelperFacade;
+use Botble\Ecommerce\Services\Footprints\Footprinter;
+use Botble\Ecommerce\Services\HandleApplyCouponService;
+use Botble\Ecommerce\Http\Middleware\RedirectIfCustomer;
+use Botble\Ecommerce\Services\Footprints\TrackingFilter;
+use Botble\Ecommerce\Services\Footprints\TrackingLogger;
+use Botble\Ecommerce\Services\HandleRemoveCouponService;
+use Botble\Ecommerce\Commands\SendSavedBoatsEmailCommand;
+use Botble\Ecommerce\Facades\ProductCategoryHelperFacade;
+use Botble\Ecommerce\Repositories\Eloquent\TaxRepository;
+use Botble\Ecommerce\Repositories\Interfaces\TaxInterface;
+use Botble\Ecommerce\Http\Middleware\RedirectIfNotCustomer;
 use Botble\Ecommerce\Repositories\Caches\TaxCacheDecorator;
-use Botble\Ecommerce\Repositories\Caches\WishlistCacheDecorator;
-use Botble\Ecommerce\Repositories\Eloquent\AddressRepository;
 use Botble\Ecommerce\Repositories\Eloquent\BrandRepository;
+use Botble\Ecommerce\Repositories\Eloquent\OrderRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ReviewRepository;
+use Botble\Ecommerce\Repositories\Interfaces\BrandInterface;
+use Botble\Ecommerce\Repositories\Interfaces\OrderInterface;
+use Botble\Ecommerce\Commands\SendAbandonedCartsEmailCommand;
+use Botble\Ecommerce\Repositories\Caches\BrandCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\OrderCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\AddressRepository;
+use Botble\Ecommerce\Repositories\Eloquent\InvoiceRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ProductRepository;
+use Botble\Ecommerce\Repositories\Interfaces\ReviewInterface;
+use Botble\LanguageAdvanced\Supports\LanguageAdvancedManager;
+use Botble\Ecommerce\Repositories\Caches\ReviewCacheDecorator;
 use Botble\Ecommerce\Repositories\Eloquent\CurrencyRepository;
 use Botble\Ecommerce\Repositories\Eloquent\CustomerRepository;
 use Botble\Ecommerce\Repositories\Eloquent\DiscountRepository;
-use Botble\Ecommerce\Repositories\Eloquent\FlashSaleRepository;
-use Botble\Ecommerce\Repositories\Eloquent\GlobalOptionRepository;
-use Botble\Ecommerce\Repositories\Eloquent\GroupedProductRepository;
-use Botble\Ecommerce\Repositories\Eloquent\InvoiceRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderAddressRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderHistoryRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderProductRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderReturnItemRepository;
-use Botble\Ecommerce\Repositories\Eloquent\OrderReturnRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductAttributeRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductAttributeSetRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductCategoryRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductCollectionRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductLabelRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductTagRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductVariationItemRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ProductVariationRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ReviewRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ShipmentHistoryRepository;
 use Botble\Ecommerce\Repositories\Eloquent\ShipmentRepository;
 use Botble\Ecommerce\Repositories\Eloquent\ShippingRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ShippingRuleItemRepository;
-use Botble\Ecommerce\Repositories\Eloquent\ShippingRuleRepository;
-use Botble\Ecommerce\Repositories\Eloquent\StoreLocatorRepository;
-use Botble\Ecommerce\Repositories\Eloquent\TaxRepository;
 use Botble\Ecommerce\Repositories\Eloquent\WishlistRepository;
 use Botble\Ecommerce\Repositories\Interfaces\AddressInterface;
-use Botble\Ecommerce\Repositories\Interfaces\BrandInterface;
+use Botble\Ecommerce\Repositories\Interfaces\InvoiceInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductInterface;
+use Botble\Ecommerce\Services\Footprints\FootprinterInterface;
+use Botble\Ecommerce\Repositories\Caches\AddressCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\InvoiceCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ProductCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\FlashSaleRepository;
 use Botble\Ecommerce\Repositories\Interfaces\CurrencyInterface;
 use Botble\Ecommerce\Repositories\Interfaces\CustomerInterface;
 use Botble\Ecommerce\Repositories\Interfaces\DiscountInterface;
-use Botble\Ecommerce\Repositories\Interfaces\FlashSaleInterface;
-use Botble\Ecommerce\Repositories\Interfaces\GlobalOptionInterface;
-use Botble\Ecommerce\Repositories\Interfaces\GroupedProductInterface;
-use Botble\Ecommerce\Repositories\Interfaces\InvoiceInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderAddressInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderHistoryInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderProductInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderReturnInterface;
-use Botble\Ecommerce\Repositories\Interfaces\OrderReturnItemInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeSetInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductCategoryInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductCollectionInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductLabelInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductTagInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductVariationInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ProductVariationItemInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ReviewInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ShipmentHistoryInterface;
 use Botble\Ecommerce\Repositories\Interfaces\ShipmentInterface;
 use Botble\Ecommerce\Repositories\Interfaces\ShippingInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ShippingRuleInterface;
-use Botble\Ecommerce\Repositories\Interfaces\ShippingRuleItemInterface;
-use Botble\Ecommerce\Repositories\Interfaces\StoreLocatorInterface;
-use Botble\Ecommerce\Repositories\Interfaces\TaxInterface;
 use Botble\Ecommerce\Repositories\Interfaces\WishlistInterface;
-use Botble\Ecommerce\Services\Footprints\Footprinter;
-use Botble\Ecommerce\Services\Footprints\FootprinterInterface;
-use Botble\Ecommerce\Services\Footprints\TrackingFilter;
+use Botble\Ecommerce\Repositories\Caches\CurrencyCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\CustomerCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\DiscountCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ShipmentCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ShippingCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\WishlistCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\ProductTagRepository;
+use Botble\Ecommerce\Repositories\Interfaces\FlashSaleInterface;
+use Botble\Ecommerce\Http\Middleware\CaptureFootprintsMiddleware;
+use Botble\Ecommerce\Repositories\Caches\FlashSaleCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\OrderReturnRepository;
+use Botble\Ecommerce\Repositories\Interfaces\ProductTagInterface;
 use Botble\Ecommerce\Services\Footprints\TrackingFilterInterface;
-use Botble\Ecommerce\Services\Footprints\TrackingLogger;
 use Botble\Ecommerce\Services\Footprints\TrackingLoggerInterface;
-use Botble\Ecommerce\Services\HandleApplyCouponService;
-use Botble\Ecommerce\Services\HandleRemoveCouponService;
-use Botble\Ecommerce\Supports\EcommerceWidget;
-use Botble\LanguageAdvanced\Supports\LanguageAdvancedManager;
-use Botble\Payment\Models\Payment;
-use Cart;
-use EcommerceHelper;
-use EmailHandler;
-use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Foundation\AliasLoader;
-use Illuminate\Http\Request;
-use Illuminate\Routing\Events\RouteMatched;
-use Illuminate\Routing\Router;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\ServiceProvider;
-use SeoHelper;
-use SlugHelper;
-use SocialService;
+use Botble\Ecommerce\Repositories\Caches\ProductTagCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\GlobalOptionRepository;
+use Botble\Ecommerce\Repositories\Eloquent\OrderAddressRepository;
+use Botble\Ecommerce\Repositories\Eloquent\OrderHistoryRepository;
+use Botble\Ecommerce\Repositories\Eloquent\OrderProductRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ProductLabelRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ShippingRuleRepository;
+use Botble\Ecommerce\Repositories\Eloquent\StoreLocatorRepository;
+use Botble\Ecommerce\Repositories\Interfaces\OrderReturnInterface;
+use Botble\Ecommerce\Repositories\Caches\OrderReturnCacheDecorator;
+use Botble\Ecommerce\Repositories\Interfaces\GlobalOptionInterface;
+use Botble\Ecommerce\Repositories\Interfaces\OrderAddressInterface;
+use Botble\Ecommerce\Repositories\Interfaces\OrderHistoryInterface;
+use Botble\Ecommerce\Repositories\Interfaces\OrderProductInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductLabelInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ShippingRuleInterface;
+use Botble\Ecommerce\Repositories\Interfaces\StoreLocatorInterface;
+use Botble\Ecommerce\Repositories\Caches\GlobalOptionCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\OrderAddressCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\OrderHistoryCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\OrderProductCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ProductLabelCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ShippingRuleCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\StoreLocatorCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\GroupedProductRepository;
+use Botble\Ecommerce\Repositories\Eloquent\OrderReturnItemRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ProductCategoryRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ShipmentHistoryRepository;
+use Botble\Ecommerce\Repositories\Interfaces\GroupedProductInterface;
+use Botble\Ecommerce\Repositories\Caches\GroupedProductCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\ProductAttributeRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ProductVariationRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ShippingRuleItemRepository;
+use Botble\Ecommerce\Repositories\Interfaces\OrderReturnItemInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductCategoryInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ShipmentHistoryInterface;
+use Botble\Ecommerce\Repositories\Caches\OrderReturnItemCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ProductCategoryCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ShipmentHistoryCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\ProductCollectionRepository;
+use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ProductVariationInterface;
+use Botble\Ecommerce\Repositories\Interfaces\ShippingRuleItemInterface;
+use Botble\Ecommerce\Repositories\Caches\ProductAttributeCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ProductVariationCacheDecorator;
+use Botble\Ecommerce\Repositories\Caches\ShippingRuleItemCacheDecorator;
+use Botble\Ecommerce\Repositories\Interfaces\ProductCollectionInterface;
+use Botble\Ecommerce\Repositories\Caches\ProductCollectionCacheDecorator;
+use Botble\Ecommerce\Repositories\Eloquent\ProductAttributeSetRepository;
+use Botble\Ecommerce\Repositories\Eloquent\ProductVariationItemRepository;
+use Botble\Ecommerce\Repositories\Interfaces\ProductAttributeSetInterface;
+use Botble\Ecommerce\Repositories\Caches\ProductAttributeSetCacheDecorator;
+use Botble\Ecommerce\Repositories\Interfaces\ProductVariationItemInterface;
+use Botble\Ecommerce\Repositories\Caches\ProductVariationItemCacheDecorator;
 
 class EcommerceServiceProvider extends ServiceProvider
 {
@@ -502,7 +503,8 @@ class EcommerceServiceProvider extends ServiceProvider
                 LanguageAdvancedManager::registerModule(Product::class, array_merge(
                     LanguageAdvancedManager::getTranslatableColumns(Product::class),
                     ['faq_schema_config']
-                ));
+                )
+                );
             }
 
             LanguageAdvancedManager::registerModule(ProductCategory::class, [
@@ -519,7 +521,8 @@ class EcommerceServiceProvider extends ServiceProvider
             LanguageAdvancedManager::registerModule(ProductAttribute::class, array_merge(
                 LanguageAdvancedManager::getTranslatableColumns(ProductAttribute::class),
                 ['attributes']
-            ));
+            )
+            );
 
             LanguageAdvancedManager::registerModule(ProductAttributeSet::class, [
                 'title',
@@ -573,7 +576,7 @@ class EcommerceServiceProvider extends ServiceProvider
                         $variations = $data->variations()->get();
 
                         foreach ($variations as $variation) {
-                            if (! $variation->product->id) {
+                            if (!$variation->product->id) {
                                 continue;
                             }
 
@@ -582,7 +585,7 @@ class EcommerceServiceProvider extends ServiceProvider
 
                         $options = $request->input('options', []) ?: [];
 
-                        if (! $options) {
+                        if (!$options) {
                             return;
                         }
 
@@ -610,7 +613,7 @@ class EcommerceServiceProvider extends ServiceProvider
                             ]);
 
                             foreach ($item['values'] as $value) {
-                                if (! $value['id']) {
+                                if (!$value['id']) {
                                     continue;
                                 }
 
@@ -631,7 +634,7 @@ class EcommerceServiceProvider extends ServiceProvider
 
                         $attributes = json_decode($request->input('attributes', '[]'), true) ?: [];
 
-                        if (! $attributes) {
+                        if (!$attributes) {
                             break;
                         }
 
@@ -664,7 +667,7 @@ class EcommerceServiceProvider extends ServiceProvider
 
                         $options = $request->input('options', []) ?: [];
 
-                        if (! $options) {
+                        if (!$options) {
                             return;
                         }
 
@@ -676,7 +679,7 @@ class EcommerceServiceProvider extends ServiceProvider
                         ]);
 
                         foreach ($options as $value) {
-                            if (! $value['id']) {
+                            if (!$value['id']) {
                                 continue;
                             }
 
@@ -724,7 +727,7 @@ class EcommerceServiceProvider extends ServiceProvider
                     'id' => 'cms-packages-products',
                     'priority' => 0,
                     'parent_id' => "cms-packages-build-boat",
-                    'name' => 'Products',
+                    'name' => 'Boats',
                     'icon' => 'fa fa-list',
                     'url' => route('predefined-list'),
                     'permissions' => ['plugins.ecommerce'],
@@ -745,6 +748,24 @@ class EcommerceServiceProvider extends ServiceProvider
                     'name' => 'Enquiries',
                     'icon' => 'fa fa-list-alt',
                     'url' => route('custom-boat-enquiries'),
+                    'permissions' => ['plugins.ecommerce'],
+                ])
+                ->registerItem([
+                    'id' => 'cms-packages-custom-boat-views',
+                    'priority' => 1,
+                    'parent_id' => "cms-packages-build-boat",
+                    'name' => 'Boat Views',
+                    'icon' => 'fa fa-list-alt',
+                    'url' => route('custom-boat-views'),
+                    'permissions' => ['plugins.ecommerce'],
+                ])
+                ->registerItem([
+                    'id' => 'cms-packages-custom-boat-discounts',
+                    'priority' => 1,
+                    'parent_id' => "cms-packages-build-boat",
+                    'name' => 'Boat Discounts',
+                    'icon' => 'fa fa-list-alt',
+                    'url' => route('custom-boat-discounts'),
                     'permissions' => ['plugins.ecommerce'],
                 ])
                 ->registerItem([
@@ -967,7 +988,7 @@ class EcommerceServiceProvider extends ServiceProvider
                 ]);
             }
 
-            if (! dashboard_menu()->hasItem('cms-core-tools')) {
+            if (!dashboard_menu()->hasItem('cms-core-tools')) {
                 dashboard_menu()->registerItem([
                     'id' => 'cms-core-tools',
                     'priority' => 96,
@@ -1009,7 +1030,7 @@ class EcommerceServiceProvider extends ServiceProvider
             ]);
 
             $this->app->make(Schedule::class)->command(SendAbandonedCartsEmailCommand::class)->weekly('23:30');
-
+            $this->app->make(Schedule::class)->command(SendSavedBoatsEmailCommand::class)->dailyAt('00:00');
             if (is_plugin_active('payment')) {
                 Payment::resolveRelationUsing('order', function ($model) {
                     return $model->belongsTo(Order::class, 'order_id')->withDefault();

@@ -251,9 +251,9 @@
                                 <div class="swatch-item swatch-decimals">
                                     {{ trans('plugins/ecommerce::currency.number_of_decimals') }}
                                 </div>
-                                <div class="swatch-item swatch-exchange-rate">
+                                {{-- <div class="swatch-item swatch-exchange-rate">
                                     {{ trans('plugins/ecommerce::currency.exchange_rate') }}
-                                </div>
+                                </div> --}}
                                 <div class="swatch-item swatch-is-prefix-symbol">
                                     {{ trans('plugins/ecommerce::currency.is_prefix_symbol') }}
                                 </div>
@@ -397,9 +397,7 @@
             <div class="swatch-item swatch-decimals" data-type="decimals">
                 <input type="number" class="form-control" value="__decimals__">
             </div>
-            <div class="swatch-item swatch-exchange-rate" data-type="exchange_rate">
-                <input type="number" class="form-control" value="__exchangeRate__" step="0.00000001">
-            </div>
+            
             <div class="swatch-item swatch-is-prefix-symbol" data-type="is_prefix_symbol">
                 <div class="ui-select-wrapper">
                     <select class="ui-select">

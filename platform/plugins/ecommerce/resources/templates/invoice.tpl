@@ -184,7 +184,7 @@
             {% if get_ecommerce_setting('store_name') %}
                 <p>{{ get_ecommerce_setting('store_name') }}</p>
             {% endif %}
-            <p>{{ get_ecommerce_setting('store_address') }}, {{ get_ecommerce_setting('store_state') }}, </p> <p>{{ get_ecommerce_setting('store_country') }}</p>
+            <p>{{ get_ecommerce_setting('store_address') }}, {{ get_ecommerce_setting('store_city') }}, {{ get_ecommerce_setting('store_state') }}, {{ get_ecommerce_setting('store_country') }}</p>
 
             {% if get_ecommerce_setting('store_phone') %}
                 <p>{{ get_ecommerce_setting('company_phone_for_invoicing') ?: get_ecommerce_setting('store_phone') }}</p>
@@ -214,6 +214,16 @@
         </td>
     </tr>
 </table>
+
+{% if invoice.description %}
+    <table class="invoice-info-container">
+        <tr style="text-align: left">
+            <td style="text-align: left">
+                <p>{{ 'plugins/ecommerce::order.note'|trans }}: {{ invoice.description }}</p>
+            </td>
+        </tr>
+    </table>
+{% endif %}
 
 <table class="line-items-container">
     <thead>

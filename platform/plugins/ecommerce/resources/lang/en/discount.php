@@ -72,4 +72,5 @@ return [
     'is' => 'Is',
     'when_shipping_fee_less_than' => 'when shipping fee less than',
     'minimum_order_amount_error' => 'You are under :minimum_amount to apply the coupon, you must add :add_more more items to your cart',
+    'boats' => 'Boats',
 ];

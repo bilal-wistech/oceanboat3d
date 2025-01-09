@@ -11,6 +11,7 @@ use Botble\Base\Supports\AdminNotificationItem;
 use Botble\Ecommerce\Events\ProductViewed;
 use Botble\Ecommerce\Http\Resources\ProductVariationResource;
 use Botble\Ecommerce\Models\Brand;
+use NaeemAwan\PredefinedLists\Models\BoatDiscount;
 use NaeemAwan\PredefinedLists\Models\PredefinedList;
 use Botble\Ecommerce\Models\ProductCategory;
 use Botble\Ecommerce\Models\ProductTag;
@@ -41,6 +42,8 @@ use Theme;
 use OrderHelper;
 use NaeemAwan\PredefinedLists\Models\BoatEnquiry;
 use NaeemAwan\PredefinedLists\Models\BoatEnquiryDetail;
+use App\Models\BoatView;
+
 
 class PublicProductController
 {
@@ -58,7 +61,7 @@ class PublicProductController
 
     public function getProducts(Request $request, GetProductService $productService, BaseHttpResponse $response)
     {
-        if (! EcommerceHelper::productFilterParamsValidated($request)) {
+        if (!EcommerceHelper::productFilterParamsValidated($request)) {
             return $response->setNextUrl(route('public.customize-boat'));
         }
 
@@ -66,7 +69,7 @@ class PublicProductController
 
         $with = [];
 
-        if ($query && ! $request->ajax()) {
+        if ($query && !$request->ajax()) {
             $products = $productService->getProduct($request, null, null, $with);
 
             SeoHelper::setTitle(__('Search result for ":query"', compact('query')));
@@ -88,9 +91,9 @@ class PublicProductController
             ->add(__('Home'), route('public.index'))
             ->add(__('Build a Boat'), route('public.customize-boat'));
 
-        if(isset($request->cat_id)){
+        if (isset($request->cat_id)) {
             $products = $productService->getProduct($request, $request->cat_id, null, $with);
-        }else{
+        } else {
             $products = $productService->getProduct($request, null, null, $with);
         }
 
@@ -109,20 +112,45 @@ class PublicProductController
         )->render();
     }
 
-    public function getProduct($id,Request $request)
+    public function getProduct($id, Request $request)
     {
-        $product = $this->productRepository->findOrFail($id);
+        $product = $this->productRepository->getByWhereIn('type', [$id]);
+        $product = $product[0];
+        $product_cats = $product->childitems_display();
+        $accessories = [];
+        foreach ($product_cats as $key => $product_cat) {
+            foreach ($product_cat->childitems() as $product_sub_cat) {
+                foreach ($product_sub_cat->childitems() as $product_sub_sub_cat) {
+                    $accessories[] = $product_sub_sub_cat;
+                }
+            }
+        }
+        if ($product->count() > 0) {
+            $this->addViewCount($product->id, 'boat');
+            Theme::breadcrumb()
+                ->add(__('Home'), route('public.index'))
+                ->add(__('Build a Boat'), route('public.customize-boat'))
+                ->add($product->type, route('public.customize-boat.id', $product->id));
+            return Theme::scope('ecommerce.boat', compact('product', 'accessories'), 'plugins/ecommerce::themes.boat')->render();
+        }
+    }
+    public function addViewCount($id, $type)
+    {
+        if (empty($id))
+            return response()->json(['message' => 'Please provide ID ', 'id' => ''], 400);
+        ;
+        $boatView = BoatView::firstOrNew(['entity_id' => $id, 'entity_type' => $type]);
+        // Increment the total_count
+        $boatView->total_count++;
 
-        Theme::breadcrumb()
-            ->add(__('Home'), route('public.index'))
-            ->add(__('Build a Boat'), route('public.customize-boat'))
-            ->add($product->ltitle, route('public.customize-boat.id',$product->id));
-            
-        return Theme::scope('ecommerce.boat',compact('product'),'plugins/ecommerce::themes.boat')->render();
+        // Save the record
+        $boatView->save();
+        return response()->json(['message' => 'View added successfully', 'id' => $id], 200);
     }
 
-    public function getTypeContent(Request $request){
-        $category=PredefinedList::where('id',$request->value)->first();
+    public function getTypeContent(Request $request)
+    {
+        $category = PredefinedList::where('id', $request->value)->first();
         return $category;
     }
 
@@ -136,7 +164,7 @@ class PublicProductController
 
         $view = Theme::getThemeNamespace('views.ecommerce.includes.boat-items');
 
-        if (! view()->exists($view)) {
+        if (!view()->exists($view)) {
             $view = 'plugins/ecommerce::themes.includes.boat-items';
         }
 
@@ -146,19 +174,80 @@ class PublicProductController
     }
 
 
-    public function SubmitBoat(Request $request){
+    public function SubmitBoat(Request $request)
+    {
+        //        dd($request);
         $request->validate([
-            "boat_id"    => "required",
+            "boat_id" => "required",
             // "total_price"  => "gt:0",
             'option' => "required|array"
         ]);
         cache()->put('boat_data', $request->all(), 60 * 60);
-        if(auth('customer')->check()){
+        if (auth('customer')->check()) {
             return redirect()->route('customer.overview');
-        }else{
+        } else {
             return redirect()->route('customer.register');
         }
     }
+    public function applyDiscount(Request $request, BaseHttpResponse $response)
+    {
+        $code = $request->input('code');
+        $accessoryId = $request->input('accessory_id');
 
+        // Store the received values in the session
+        $totalPrice = $request->input('total_price');
+        session(['total_price' => $totalPrice]);
 
+        // Check if the accessory is selected
+        $selectedOptions = $request->input('selected_options', []);
+        if (!in_array($accessoryId, $selectedOptions)) {
+            return $response->setError()->setMessage('Accessory not selected.');
+        }
+
+        // Find the discount in the database
+        $discount = BoatDiscount::where('code', $code)
+            ->where('list_id', $accessoryId)
+            ->orWhere('accessory_id',$accessoryId)
+            ->where(function ($query) {
+                $query->where('valid_to', '>=', now())
+                    ->orWhere('never_expires', 1);
+            })
+            ->where('valid_from', '<=', now())
+            ->first();
+
+        if (!$discount) {
+            return $response->setError()->setMessage('Invalid or expired discount code.');
+        }
+
+        // Get the product price from the discount object
+        $pdl_list_price = $discount->list->price;
+
+        // Calculate the discount amount based on product price
+        $discountAmount = 0;
+        if ($discount->discount_type === 'amount') {
+            $discountAmount = $discount->discount;
+        } elseif ($discount->discount_type === 'percentage') {
+            $discountAmount = ($pdl_list_price * $discount->discount) / 100;
+        }
+
+        // Apply the discount to the total price
+        $newTotalPrice = $totalPrice - $discountAmount;
+
+        // Update the session with the new total price
+        session(['total_price' => $newTotalPrice]);
+
+        // Store or update the applied discount information in the session
+        $appliedDiscounts = session('applied_discounts', []);
+        $appliedDiscounts[$accessoryId] = [
+            'code' => $discount->code,
+            'amount' => $discountAmount,
+        ];
+        session(['applied_discounts' => $appliedDiscounts]);
+
+        return $response->setMessage('Discount applied successfully.')
+            ->setData([
+                'new_total' => $newTotalPrice,
+                'discount_amount' => $discountAmount,
+            ]);
+    }
 }

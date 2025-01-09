@@ -50,6 +50,8 @@ return [
     'statuses' => [
         'read' => 'Read',
         'unread' => 'Unread',
+        '0' => 'No',
+        '1' => 'Yes',
     ],
     'phone' => 'Phone',
     'address' => 'Address',

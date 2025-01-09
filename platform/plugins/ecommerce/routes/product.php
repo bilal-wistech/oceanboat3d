@@ -101,6 +101,11 @@ Route::group(['namespace' => 'Botble\Ecommerce\Http\Controllers', 'middleware' =
                 'uses' => 'ProductController@postUpdateOrderby',
                 'permission' => 'products.edit',
             ]);
+            Route::get('get-list-boats-for-select', [
+                'as' => 'get-list-boats-for-select',
+                'uses' => 'ProductController@getAllBoats',
+                'permission' => 'products.index',
+            ]);
         });
     });
 });
