@@ -1,0 +1,3 @@
+<style>
+@stack('cssStyles')
+</style>

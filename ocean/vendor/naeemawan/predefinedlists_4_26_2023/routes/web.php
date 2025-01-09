@@ -1,0 +1,117 @@
+<?php
+use Illuminate\Support\Facades\Route;
+
+Route::group(['namespace' => 'NaeemAwan\PredefinedLists\Http\Controllers'], function () {
+
+  Route::match(['post','get'],'/customize-boat', [
+    'as' => 'public.customize-boat',
+    'uses' => 'PublicProductController@getProducts',
+  ]);
+  Route::match(['post','get'],'/customize-boat/{id}', [
+    'as' => 'public.customize-boat.id',
+    'uses' => 'PublicProductController@getProduct',
+  ]);
+  Route::match(['post','get'],'/customize-type-content', [
+    'uses' => 'PublicProductController@getTypeContent',
+  ]);
+});
+
+Route::group(['namespace' => 'NaeemAwan\PredefinedLists\Http\Controllers', 'middleware' => ['web', 'core']], function () {
+    //products
+    Route::group(['prefix' => BaseHelper::getAdminPrefix(). '/predefined-list' , 'middleware' => 'auth'], function () {
+    		Route::match(['post','get'],'/', [
+          'as' => 'predefined-list',
+          'uses' => 'PredefinedListController@index',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'create', [
+          'as' => 'predefined-list.create',
+          'uses' => 'PredefinedListController@create',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/create/{parent}', [
+          'as' => 'predefined-list.create.parent',
+          'uses' => 'PredefinedListController@create',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/store', [
+          'as' => 'predefined-list.store',
+          'uses' => 'PredefinedListController@store',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/status/{id}', [
+          'as' => 'predefined-list.status.{id}',
+          'uses' => 'PredefinedListController@status',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/update/{id}', [
+          'as' => 'predefined-list.update',
+          'uses' => 'PredefinedListController@update',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/edit/{id}', [
+          'as' => 'predefined-list.edit',
+          'uses' => 'PredefinedListController@edit',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::delete('/delete/{id}', [
+          'as' => 'predefined-list.destroy',
+          'uses' => 'PredefinedListController@destroy',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::delete('/delete', [
+          'as' => 'predefined-list.deletes',
+          'uses' => 'PredefinedListController@deletes',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/{parent}', [
+          'as' => 'predefined-list.parent',
+          'uses' => 'PredefinedListController@index',
+          'permission' => 'plugins.ecommerce',
+        ]);
+   	});
+    //categories
+    Route::group(['prefix' => BaseHelper::getAdminPrefix(). '/predefined-categories' , 'middleware' => 'auth'], function () {
+        Route::match(['post','get'],'/', [
+          'as' => 'predefined-categories',
+          'uses' => 'PredefinedCategoryController@index',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'create', [
+          'as' => 'predefined-categories.create',
+          'uses' => 'PredefinedCategoryController@create',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/store', [
+          'as' => 'predefined-categories.store',
+          'uses' => 'PredefinedCategoryController@store',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/status/{id}', [
+          'as' => 'predefined-categories.status.{id}',
+          'uses' => 'PredefinedCategoryController@status',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/update/{id}', [
+          'as' => 'predefined-categories.update',
+          'uses' => 'PredefinedCategoryController@update',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::match(['post','get'],'/edit/{id}', [
+          'as' => 'predefined-categories.edit',
+          'uses' => 'PredefinedCategoryController@edit',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::delete('/delete/{id}', [
+          'as' => 'predefined-categories.destroy',
+          'uses' => 'PredefinedCategoryController@destroy',
+          'permission' => 'plugins.ecommerce',
+        ]);
+        Route::delete('/delete', [
+          'as' => 'predefined-categories.deletes',
+          'uses' => 'PredefinedCategoryController@deletes',
+          'permission' => 'plugins.ecommerce',
+        ]);
+    });
+});
+

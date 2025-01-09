@@ -1,0 +1,40 @@
+{
+    "name": "naeemawan/predefinedlists",
+    "description": "Laravel Lists Managment",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.0|^8.1",
+        "laravel/framework": "^9.21",
+        "laravel/helpers": "^1.4",
+        "laravel/tinker": "^2.7",
+        "laravel/ui": "^3.3",
+        "laravelcollective/html": "^6.2",
+        "league/glide-laravel": "^1.0",
+        "livewire/livewire": "^2.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "NaeemAwan\\PredefinedLists\\": "src"
+        },
+        "files": [
+            "src/Helpers/PDLFunctions.php"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "NaeemAwan\\PredefinedLists\\Providers\\PDLServiceProvider"
+            ]
+        }
+    },
+    "authors": [
+        {
+            "name": "Naeem Afzal",
+            "email": "malick.naeem@gmail.com"
+        }
+    ]
+}
